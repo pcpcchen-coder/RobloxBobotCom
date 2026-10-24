@@ -54,7 +54,7 @@ function CombatState.selectSkill(self: CombatState, userId: number, skillId: any
     if not selectionOpen then
         return false, "selection_closed"
     end
-    if not CombatRules.isValidMvpSkill(self.config, skillId) then
+    if not CombatRules.isValidSkill(self.config, skillId) then
         return false, "invalid_skill"
     end
     self:_record(userId).selectedSkill = skillId
@@ -68,17 +68,18 @@ function CombatState._tryUse(
     key: string,
     cooldown: number,
     busyFor: number,
-    now: number
+    now: number,
+    ignoreBusy: boolean?
 ): (boolean, string?)
     local record = self:_record(userId)
     if now < (record.readyAt[key] or -math.huge) then
         return false, "cooldown"
     end
-    if now < record.busyUntil then
+    if not ignoreBusy and now < record.busyUntil then
         return false, "busy"
     end
     record.readyAt[key] = now + cooldown
-    record.busyUntil = now + busyFor
+    record.busyUntil = math.max(record.busyUntil, now + busyFor)
     return true, nil
 end
 
@@ -89,7 +90,7 @@ end
 
 -- `skillId` must equal the player's selected skill (ARCHITECTURE 3).
 function CombatState.tryUseSpecial(self: CombatState, userId: number, skillId: any, now: number): (boolean, string?)
-    if not CombatRules.isValidMvpSkill(self.config, skillId) then
+    if not CombatRules.isValidSkill(self.config, skillId) then
         return false, "invalid_skill"
     end
     local record = self:_record(userId)
@@ -97,11 +98,11 @@ function CombatState.tryUseSpecial(self: CombatState, userId: number, skillId: a
         return false, "not_selected"
     end
     local skill = self.config.Skills[skillId]
-    local busyFor = skill.Duration or skill.ActiveDuration or skill.Startup or 0
+    local busyFor = skill.BusyTime or skill.Duration or skill.Startup or 0
     if skillId == "counter_shield" then
         busyFor = 0 -- shielding does not lock movement or dash
     end
-    local ok, err = self:_tryUse(userId, skillId, skill.Cooldown, busyFor, now)
+    local ok, err = self:_tryUse(userId, skillId, skill.Cooldown, busyFor, now, skill.IgnoreBusy)
     if ok and skillId == "counter_shield" then
         record.shieldUntil = now + skill.ActiveDuration
     end

@@ -98,28 +98,29 @@ local function build(): ScreenGui
     widgets.dashCd.TextXAlignment = Enum.TextXAlignment.Left
     widgets.skillCd.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Skill picker (only while selection is open).
+    -- Skill picker (only while selection is open): 4 x 2 grid for 7 skills.
     local picker = Instance.new("Frame")
     picker.Name = "SkillPicker"
-    picker.Size = UDim2.fromOffset(420, 56)
-    picker.Position = UDim2.new(0.5, -210, 0.62, 0)
+    picker.Size = UDim2.fromOffset(500, 100)
+    picker.Position = UDim2.new(0.5, -250, 0.58, 0)
     picker.BackgroundTransparency = 1
     picker.Parent = gui
-    local layout = Instance.new("UIListLayout")
-    layout.FillDirection = Enum.FillDirection.Horizontal
+    local layout = Instance.new("UIGridLayout")
+    layout.CellSize = UDim2.fromOffset(116, 44)
+    layout.CellPadding = UDim2.fromOffset(8, 8)
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.Padding = UDim.new(0, 8)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = picker
     widgets.picker = picker
     widgets.skillButtons = {}
-    for _, skillId in GameConfig.Skills.AvailableInMVP do
+    for order, skillId in GameConfig.Skills.Selectable do
         local button = Instance.new("TextButton")
         button.Name = skillId
-        button.Size = UDim2.new(0, 130, 1, 0)
+        button.LayoutOrder = order
         button.BackgroundColor3 = Color3.fromRGB(40, 44, 60)
         button.TextColor3 = Color3.new(1, 1, 1)
         button.Font = Enum.Font.GothamBold
-        button.TextSize = 16
+        button.TextSize = 15
         button.TextWrapped = true
         button.Text = GameConfig.Skills[skillId].Name
         button.Parent = picker

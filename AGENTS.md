@@ -12,7 +12,7 @@
 
 1. 先確認目前 Repo 真實現況，再決定新增/修改的檔案。
 2. 優先可玩閉環：玩家進場 → 倒數 → 對戰 → 擊退/掉落 → 得分/重生 → 結算。
-3. MVP 只做 **基本 Dash、Rocket Pop、Side Burst、Counter Shield**；其他四個特殊技能只規劃。
+3. 技能範圍：**基本 Dash＋七項特殊技能全部可選**（2026-10-24 依專案擁有者指示擴充；原 MVP 為 Dash＋Rocket Pop／Side Burst／Counter Shield）。新增技能須同步 GameConfig、SKILLS、TEST_PLAN。
 4. 專案程式使用 Luau；比賽、技能與分數 Server-authoritative。
 5. 所有 gameplay 數值放 GameConfig，不在多個程式碼中複製常數。
 6. 先做好 PC 和手機，不要因為特效/外觀影響核心進度。
