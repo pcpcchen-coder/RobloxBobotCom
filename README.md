@@ -1,10 +1,10 @@
 # RoboPush Arena｜機器人推推擂台
 
-> Roblox 小型多人對戰遊戲｜設計版本 **v0.2 (2026-10-24)**｜狀態：**P1–P4 程式碼已實作（靜態檢查＋純邏輯單元測試通過），尚未經 Roblox Studio／真機驗收**
+> Roblox 小型多人對戰遊戲｜設計版本 **v0.2 (2026-10-24)**｜狀態：**P1–P4 已實作；T01–T22 經專案擁有者 Studio／真機實測回報通過（2026-10-24）；P5 進行中**
 
 玩家操控可愛機器人，在逐漸縮小的懸浮擂台上，透過衝刺、突然彈跳與反制技能，將對手推下平台。遊戲以 **容易上手、短局制、公平競技、適合朋友同樂** 為核心。
 
-**專案狀態說明：** 已有可由 Rojo 同步的 Luau 程式（比賽狀態機、計分、縮圈、Dash、三項 MVP 技能、HUD、跨裝置輸入）。**尚未在 Roblox Studio Server & Clients 或手機真機實測**；物理手感、Network Ownership、擊退數值均為待測假設。測試現況見 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
+**專案狀態說明：** 已有可由 Rojo 同步的 Luau 程式（比賽狀態機、計分、縮圈、Dash、三項 MVP 技能、HUD、跨裝置輸入）。專案擁有者已於 Studio 與真機實測 T01–T22 並回報正常（尚未附 log／截圖）；擊退與技能數值仍可依手感調整。測試現況見 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
 
 ## 核心玩法
 
@@ -47,8 +47,24 @@ rokit install                 # 安裝工具鏈
 rojo serve                    # 搭配 Roblox Studio Rojo 外掛同步
 ~~~
 
+每次 push / PR 會由 GitHub Actions（`.github/workflows/ci.yml`）自動執行同一套檢查並上傳建置好的 `RoboPushArena.rbxl`。
+
 Studio 雙人測試：`rojo serve` 連線後，於 Studio **Test → Clients and Servers** 選 1 Server + 2 Clients。
 遊戲設定請把 **Max Players 設為 2**（伺服器人數無法由程式設定；第 3 位以後玩家會排隊觀戰）。
+
+## 發佈私人測試版本（手機／手把實測用）
+
+1. 以 Studio 開啟 `rojo build -o RoboPushArena.rbxl` 產生的檔案（或 CI artifact），或用 `rojo serve` 同步到已開啟的 place。
+2. **File → Publish to Roblox As…** → 建立新體驗（或選既有體驗）。
+3. **Home → Game Settings**：
+   - **Permissions**：Playability 設 **Private**（只有你）或 **Friends**（邀請測試者）。
+   - **Places → 設定 → Server Fill／Max Players** 設 **2**（程式無法設定伺服器人數）。
+   - **Basic Info → Devices**：勾選 Computer、Phone、Tablet，需要手把時勾 Console。
+4. 手機登入**同一個帳號或已被授權的帳號**，從 Roblox App「我的體驗」或分享連結進入。
+5. 每次更新程式後重新 **Publish**；舊伺服器不會自動更新，可在網頁體驗設定中「Shut Down All Servers」。
+6. 測試結果與 log 請記錄到 `docs/TEST_REPORT.md`。
+
+> 公開（Public）發佈前需完成 Roblox 的 Experience Questionnaire（內容分級），且 MVP 不加入付費機制。
 
 ## 目錄
 
@@ -56,6 +72,7 @@ Studio 雙人測試：`rojo serve` 連線後，於 Studio **Test → Clients and
 RobloxBobotCom/
 ├── default.project.json          # Rojo 映射
 ├── rokit.toml / selene.toml / stylua.toml
+├── .github/workflows/ci.yml      # CI：格式、lint、單元測試、rojo build
 ├── scripts/check.sh              # 離線靜態檢查與單元測試
 ├── src/
 │   ├── shared/                   # → ReplicatedStorage.Shared

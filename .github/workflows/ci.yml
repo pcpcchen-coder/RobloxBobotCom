@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # Keep in sync with rokit.toml.
+  STYLUA_VERSION: "2.6.0"
+  SELENE_VERSION: "0.31.0"
+  LUNE_VERSION: "0.11.1"
+  ROJO_VERSION: "7.4.4"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache tool binaries
+        id: tools-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: tools-${{ runner.os }}-stylua${{ env.STYLUA_VERSION }}-selene${{ env.SELENE_VERSION }}-lune${{ env.LUNE_VERSION }}-rojo${{ env.ROJO_VERSION }}
+
+      - name: Install tools (first run builds from source, then cached)
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install stylua --version "$STYLUA_VERSION" --features luau --locked
+          cargo install selene --version "$SELENE_VERSION" --locked
+          cargo install lune --version "$LUNE_VERSION" --locked
+          cargo install rojo --version "$ROJO_VERSION" --locked
+
+      - name: Format (stylua)
+        run: stylua --check src tests
+
+      - name: Lint (selene, std=roblox)
+        run: selene src
+
+      - name: Unit tests (lune, pure logic)
+        run: lune run tests/run
+
+      - name: Build place (rojo)
+        run: rojo build default.project.json -o RoboPushArena.rbxl
+
+      - name: Upload place file
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoboPushArena-place
+          path: RoboPushArena.rbxl
+          retention-days: 14

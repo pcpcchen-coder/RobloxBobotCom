@@ -66,7 +66,7 @@ local function build(): ScreenGui
 
     local top = Instance.new("Frame")
     top.Name = "TopBar"
-    top.Size = UDim2.new(0, 360, 0, 54)
+    top.Size = UDim2.fromOffset(360, 54)
     top.Position = UDim2.new(0.5, -180, 0, 6)
     top.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
     top.BackgroundTransparency = 0.3
@@ -75,33 +75,33 @@ local function build(): ScreenGui
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = top
 
-    widgets.scoreBlue = label("ScoreBlue", top, UDim2.new(0.33, 0, 1, 0), UDim2.new(0, 0, 0, 0), 28)
+    widgets.scoreBlue = label("ScoreBlue", top, UDim2.fromScale(0.33, 1), UDim2.new(0, 0, 0, 0), 28)
     widgets.scoreBlue.TextColor3 = slotColor(1)
-    widgets.timer = label("Timer", top, UDim2.new(0.34, 0, 1, 0), UDim2.new(0.33, 0, 0, 0), 26)
-    widgets.scoreOrange = label("ScoreOrange", top, UDim2.new(0.33, 0, 1, 0), UDim2.new(0.67, 0, 0, 0), 28)
+    widgets.timer = label("Timer", top, UDim2.fromScale(0.34, 1), UDim2.fromScale(0.33, 0), 26)
+    widgets.scoreOrange = label("ScoreOrange", top, UDim2.fromScale(0.33, 1), UDim2.fromScale(0.67, 0), 28)
     widgets.scoreOrange.TextColor3 = slotColor(2)
 
-    widgets.banner = label("Banner", gui, UDim2.new(1, 0, 0, 60), UDim2.new(0, 0, 0.28, 0), 40)
+    widgets.banner = label("Banner", gui, UDim2.new(1, 0, 0, 60), UDim2.fromScale(0, 0.28), 40)
     widgets.subBanner = label("SubBanner", gui, UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0.28, 60), 22)
-    widgets.warning = label("Warning", gui, UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 66), 22)
+    widgets.warning = label("Warning", gui, UDim2.new(1, 0, 0, 30), UDim2.fromOffset(0, 66), 22)
     widgets.warning.TextColor3 = Color3.fromRGB(255, 210, 60)
 
     -- Cooldowns: bottom-left, away from the right-side touch buttons.
     local cooldowns = Instance.new("Frame")
     cooldowns.Name = "Cooldowns"
-    cooldowns.Size = UDim2.new(0, 220, 0, 60)
+    cooldowns.Size = UDim2.fromOffset(220, 60)
     cooldowns.Position = UDim2.new(0, 12, 1, -230)
     cooldowns.BackgroundTransparency = 1
     cooldowns.Parent = gui
-    widgets.dashCd = label("DashCooldown", cooldowns, UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0, 0), 20)
-    widgets.skillCd = label("SkillCooldown", cooldowns, UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0), 20)
+    widgets.dashCd = label("DashCooldown", cooldowns, UDim2.fromScale(1, 0.5), UDim2.new(0, 0, 0, 0), 20)
+    widgets.skillCd = label("SkillCooldown", cooldowns, UDim2.fromScale(1, 0.5), UDim2.fromScale(0, 0.5), 20)
     widgets.dashCd.TextXAlignment = Enum.TextXAlignment.Left
     widgets.skillCd.TextXAlignment = Enum.TextXAlignment.Left
 
     -- Skill picker (only while selection is open).
     local picker = Instance.new("Frame")
     picker.Name = "SkillPicker"
-    picker.Size = UDim2.new(0, 420, 0, 56)
+    picker.Size = UDim2.fromOffset(420, 56)
     picker.Position = UDim2.new(0.5, -210, 0.62, 0)
     picker.BackgroundTransparency = 1
     picker.Parent = gui
