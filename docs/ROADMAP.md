@@ -1,6 +1,14 @@
 # MVP 開發路線圖與工作包
 
-狀態：**全部未開始（Not Started）**。此文件可直接作為 Claude Code / Codex 任務拆解依據。
+狀態（2026-10-24）：P1–P4 **程式碼已實作**，靜態檢查與純邏輯單元測試通過；**Studio 多人、手機真機驗收均未執行（Blocked：開發環境無 Roblox Studio）**。P5 未開始。此文件可直接作為 Claude Code / Codex 任務拆解依據。
+
+| 階段 | 程式碼 | 離線檢查 | Studio／真機驗收 |
+|---|---|---|---|
+| P1 Repo／地圖／玩家 | 已實作（Rojo、SkyArena、R15 雙色、禁跳） | rojo build／lint | Not Run |
+| P2 比賽回圈 | 已實作（MatchModel + MatchService） | 單元測試 Pass | Not Run |
+| P3 Dash＋三技能 | 已實作（CombatService） | 規則層單元測試 Pass | Not Run |
+| P4 縮圈／UI／跨裝置 | 已實作（ArenaService、HUD、CAS 輸入） | 時程單元測試 Pass | Not Run |
+| P5 整合／壓測／發佈 | 未開始 | — | Not Run |
 
 ## 版本目標
 

@@ -1,6 +1,6 @@
 # 技術架構｜RoboPush Arena v0.2
 
-文件性質：**設計與實作指南**；尚未完成 Roblox place、遊戲腳本或實測。
+文件性質：**設計與實作指南**；P1–P4 腳本已依本文件實作（見第 11 節），**尚未經 Studio 多人實測**。
 
 ## 1. 技術選型
 
@@ -26,7 +26,10 @@
 | UIController | Client | HUD、倒數、技能選擇、結果與警示 |
 | EffectController | Client | 音效、粒子、鏡頭震動（僅呈現） |
 | GameConfig | Shared | 全數值設定，伺服器保有最終驗證權限 |
-| GameTypes | Shared | 比賽與技能狀態型別（待實作） |
+| GameTypes | Shared | 比賽狀態、結果原因、特效列舉與型別 |
+| Remotes / ArenaMath / Maid | Shared | RemoteEvent 契約、縮圈與出生點純函式、生命週期清理 |
+| MatchModel / CombatRules / CombatState | Server（Logic） | 純邏輯層，無 Roblox API，可用 Lune 離線測試 |
+| Logger | Server | 事件 timeline（matchId、lifeId、技能、命中、掉落、得分、結果） |
 
 **建議映射：**
 
@@ -47,7 +50,8 @@ MVP 目錄結構詳見首頁 README；先從空白環境建立 Rojo project map�
 | RequestDash | clientSequence（僅去重輔助） | RUNNING/延長賽、角色可操作、冷卻、移動狀態 |
 | RequestSpecial | skillId, directionHint | skillId 等於本局已選技能、冷卻、方向向量範圍、有效狀態 |
 | SelectSkill | skillId | 必須在允許選技能時段，且為 unlocked/available |
-| RequestReady（可選） | 無 | 玩家在本場配對內 |
+| RequestSnapshot | 無 | 每位玩家最少間隔 `Net.SnapshotMinInterval` 秒 |
+| RequestReady（可選，未實作） | 無 | 玩家在本場配對內 |
 
 **方向安全規則**：directionHint 只作操作提示，不接受目標世界座標、傷害數字、分數或任何 hitPlayer ID。以角色的伺服器認可姿態與合理輸入來決定最終方向。
 
@@ -150,7 +154,18 @@ MatchState {
 
 優先完成 [ROADMAP](ROADMAP.md) P1→P5；每階段應有可重現遊戲影片/截圖、測試步驟和異常清單。測試依 [TEST_PLAN](TEST_PLAN.md)，禁止把未執行項目標為 Pass。
 
-## 10. 官方參考
+## 10. 實作決策（2026-10-24）
+
+- **兩層結構**：`Logic/` 純邏輯（時間由參數注入、回傳事件列表）＋ `Services/` Roblox 轉接層。MatchService 把 MatchModel 事件（StateChanged、ScoreChanged、Result、SpawnPlayer、FallResolved、ArenaWarning、ArenaChanged）轉成角色生成、平台縮放與 RemoteEvent。
+- **計時**：全部使用 `workspace:GetServerTimeNow()`；Client 只用同一時鐘顯示倒數。
+- **重生序列化**：每位玩家一個 spawn worker，只執行最新 token 的 SpawnPlayer，避免 LoadCharacter 競態；`beginLife` 拒絕過期 token。
+- **掉落偵測**：Heartbeat 只檢查最多 2 位參賽者的 HumanoidRootPart Y；Humanoid.Died 也視為該 life 的掉落（lifeId 去重）。
+- **Heartbeat 生命週期**：比賽迴圈只在伺服器有玩家時連線；CombatService 的命中掃描只在有啟動中的技能窗口時連線，最後一個窗口結束即斷開；BindToClose 清理全部。
+- **自身位移**（Dash、Side Burst、Rocket Pop 起跳）：伺服器在角色 root 上建立短暫 `LinearVelocity`，由擁有者 Client 模擬（無輸入延遲）；命中判定使用伺服器端位置。
+- **擊退**：伺服器暫時取得受擊者 Network Ownership（`Physics.KnockbackOwnershipSeconds`），`PlatformStand` 後以 `ApplyImpulse(Δv × AssemblyMass)` 施加，之後歸還所有權。**此策略需 T04 雙人實測確認流暢度與一致性。**
+- **節流**：每位玩家一個 token bucket（`Net.MaxRequestsPerSecond / BurstRequests`），超量請求記錄 anomaly 並丟棄。
+
+## 11. 官方參考
 
 - Roblox remote events: https://create.roblox.com/docs/scripting/events/remote
 - Roblox network ownership: https://create.roblox.com/docs/physics/network-ownership
