@@ -52,4 +52,22 @@ function ArenaMath.isOverPlatform(arena: ArenaConfig, size: number, x: number, z
     return math.abs(x - arena.CenterX) <= half and math.abs(z - arena.CenterZ) <= half
 end
 
+-- Horizontal distance from (x, z) to the nearest platform edge: positive when
+-- over the platform, negative when outside it.
+function ArenaMath.edgeDistance(arena: ArenaConfig, size: number, x: number, z: number): number
+    local half = size / 2
+    local dx = half - math.abs(x - arena.CenterX)
+    local dz = half - math.abs(z - arena.CenterZ)
+    return math.min(dx, dz)
+end
+
+-- Clamp (x, z) to at least `inset` studs inside the platform edge (Rescue
+-- Claw landing point). Returns x, z.
+function ArenaMath.clampInside(arena: ArenaConfig, size: number, x: number, z: number, inset: number): (number, number)
+    local limit = math.max(0, size / 2 - inset)
+    local cx = math.clamp(x - arena.CenterX, -limit, limit)
+    local cz = math.clamp(z - arena.CenterZ, -limit, limit)
+    return arena.CenterX + cx, arena.CenterZ + cz
+end
+
 return ArenaMath

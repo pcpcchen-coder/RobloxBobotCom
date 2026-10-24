@@ -4,6 +4,9 @@
 -- Works on plain numbers so it runs outside Studio; CombatService converts
 -- to/from Vector3. Horizontal plane is X/Z, up is Y.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ArenaMath = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ArenaMath"))
+
 local CombatRules = {}
 
 local EPSILON = 1e-6
@@ -115,7 +118,7 @@ end
 
 -- How an incoming impact interacts with the target's Counter Shield (SKILLS 6).
 --   "rebound": ram (dash / side burst) into an active shield -> attacker bounced
---   "blocked": non-ram knockback (rocket pop shockwave) -> nothing happens
+--   "blocked": non-ram effect (rocket pop / ground slam shockwave, magnet pull) -> nothing happens
 --   "hit":     no shield -> normal knockback
 -- Shield is always evaluated before the hit (same-frame priority rule).
 function CombatRules.resolveImpact(isRam: boolean, targetShieldActive: boolean): string
@@ -125,12 +128,29 @@ function CombatRules.resolveImpact(isRam: boolean, targetShieldActive: boolean):
     return "hit"
 end
 
--- Validate a skill id from the network: must be a string listed as MVP.
-function CombatRules.isValidMvpSkill(config: any, skillId: any): boolean
+-- Validate a skill id from the network: must be a string listed as selectable.
+function CombatRules.isValidSkill(config: any, skillId: any): boolean
     if type(skillId) ~= "string" or #skillId > 32 then
         return false
     end
-    return table.find(config.Skills.AvailableInMVP, skillId) ~= nil
+    return table.find(config.Skills.Selectable, skillId) ~= nil
+end
+
+-- Pull velocity toward the caster (Magnet Pull): same as knockback but the
+-- direction points from the target to the source. Returns vx, vy, vz.
+function CombatRules.pullVelocity(
+    sourceX: number,
+    sourceZ: number,
+    targetX: number,
+    targetZ: number,
+    horizontal: number,
+    vertical: number
+): (number, number, number)
+    local ux, uz = CombatRules.horizontalUnit(sourceX - targetX, sourceZ - targetZ)
+    if not ux or not uz then
+        return 0, vertical, 0
+    end
+    return ux * horizontal, vertical, uz * horizontal
 end
 
 -- Validate a direction hint already decomposed into numbers.
@@ -140,6 +160,23 @@ function CombatRules.isValidHint(config: any, x: any, y: any, z: any): boolean
     end
     local magnitude = math.sqrt(x * x + y * y + z * z)
     return magnitude <= config.Net.MaxDirectionHintMagnitude
+end
+
+-- Rescue Claw eligibility (SKILLS 8): only while falling off / at the edge and
+-- before the fall threshold. Returns ok, reason.
+function CombatRules.canRescue(config: any, arenaSize: number, x: number, y: number, z: number): (boolean, string?)
+    local arena = config.Arena
+    local claw = config.Skills.rescue_claw
+    if ArenaMath.isFallen(arena, y) then
+        return false, "already_fallen"
+    end
+    if y > arena.PlatformTopY + claw.MaxHeightAboveTop then
+        return false, "too_high"
+    end
+    if ArenaMath.edgeDistance(arena, arenaSize, x, z) > claw.TriggerEdgeDistance then
+        return false, "not_at_edge"
+    end
+    return true, nil
 end
 
 -- ------------------------------------------------------------- rate limiter

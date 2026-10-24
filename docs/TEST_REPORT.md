@@ -11,7 +11,7 @@
   - `stylua --check src tests`（格式）→ 通過
   - `selene src`（lint）→ 0 errors / 0 warnings。**注意**：容器無法下載 Roblox API dump，lint 以自訂離線 std（luau + Roblox 全域名稱）執行；正式 `std = "roblox"` 尚未在本機跑過。
   - Luau 編譯檢查（Lune 內建 Luau compiler，全部 19 個 `.lua`）→ 通過
-  - `lune run tests/run`（純邏輯單元測試）→ **41 passed, 0 failed**
+  - `lune run tests/run`（純邏輯單元測試）→ **46 passed, 0 failed**（含 T23–T26 新增技能）
   - `rojo build default.project.json`（Rojo 7.4.4）→ 成功產生 `.rbxlx`，實例樹符合 ARCHITECTURE 映射（Shared／RoboPush Script＋Logic＋Services／StarterPlayerScripts LocalScript＋Controllers）
 - **未執行**：Luau 型別檢查（`luau-analyze` 需 Roblox 型別定義，容器內不可用）。
 
@@ -44,6 +44,10 @@
 | T20 | GDD 5 | —（鍵鼠/手機/手把實機） | N/A | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
 | T21 | ARCH 5 | MatchModel: `T21 stale lifeId…`、`stale SpawnPlayer token…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
 | T22 | ARCH 8 | Combat: `skill selection only when open… (T22)`、`T22 direction hint validation…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T23 | SKILLS 3 | Combat: `T23 ground slam…` | Pass | Not Run | 單元測試輸出 |
+| T24 | SKILLS 5 | Combat: `T24 magnet pull…` | Pass | Not Run | 同上 |
+| T25 | SKILLS 7 | Combat: `T25 phantom brake…` | Pass | Not Run | 同上 |
+| T26 | SKILLS 8 | Combat: `T26 rescue claw…`、Config: `edgeDistance / clampInside…` | Pass | Not Run | 同上 |
 
 ## 重現方式
 

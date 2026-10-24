@@ -31,6 +31,12 @@ GameTypes.EffectType = table.freeze({
     SHIELD_UP = "shield_up",
     SHIELD_REBOUND = "shield_rebound",
     SHIELD_BLOCK = "shield_block",
+    SLAM_JUMP = "slam_jump",
+    SLAM_HIT = "slam_hit",
+    MAGNET = "magnet",
+    MAGNET_HIT = "magnet_hit",
+    PHANTOM = "phantom",
+    RESCUE = "rescue",
     FALL = "fall",
 })
 

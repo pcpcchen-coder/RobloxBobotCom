@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local GameConfig = require(Shared:WaitForChild("GameConfig"))
 local GameTypes = require(Shared:WaitForChild("GameTypes"))
 local Maid = require(Shared:WaitForChild("Maid"))
 
@@ -33,6 +34,12 @@ local STYLE: { [string]: { color: Color3, size: number, sound: string? } } = {
     [EffectType.SHIELD_UP] = { color = Color3.fromRGB(120, 220, 255), size = 5, sound = "rbxasset://sounds/electronicpingshort.wav" },
     [EffectType.SHIELD_REBOUND] = { color = Color3.fromRGB(80, 200, 255), size = 9, sound = "rbxasset://sounds/swordlunge.wav" },
     [EffectType.SHIELD_BLOCK] = { color = Color3.fromRGB(80, 200, 255), size = 6 },
+    [EffectType.SLAM_JUMP] = { color = Color3.fromRGB(255, 200, 80), size = 3 },
+    [EffectType.SLAM_HIT] = { color = Color3.fromRGB(255, 170, 40), size = 14, sound = "rbxasset://sounds/swordlunge.wav" },
+    [EffectType.MAGNET] = { color = Color3.fromRGB(200, 90, 255), size = 4, sound = "rbxasset://sounds/electronicpingshort.wav" },
+    [EffectType.MAGNET_HIT] = { color = Color3.fromRGB(190, 80, 255), size = 6 },
+    [EffectType.PHANTOM] = { color = Color3.fromRGB(180, 240, 255), size = 3 },
+    [EffectType.RESCUE] = { color = Color3.fromRGB(255, 255, 120), size = 5, sound = "rbxasset://sounds/electronicpingshort.wav" },
 }
 
 local function rootOf(userId: number?): BasePart?
@@ -80,7 +87,53 @@ local function shake()
     TweenService:Create(humanoid, TweenInfo.new(FLASH_SECONDS), { CameraOffset = Vector3.zero }):Play()
 end
 
-local function onCombatEffect(effectType: string, sourceId: number?, targetId: number?, position: Vector3?)
+-- Phantom Brake hologram: translucent, non-colliding block that keeps sliding
+-- forward. Purely local presentation; it is not a player and cannot be hit.
+local function phantom(from: Vector3, direction: Vector3)
+    local skill = GameConfig.Skills.phantom_brake
+    local flat = Vector3.new(direction.X, 0, direction.Z)
+    if flat.Magnitude < 1e-3 then
+        return
+    end
+    local ghost = Instance.new("Part")
+    ghost.Name = "PhantomGhost"
+    ghost.Anchored = true
+    ghost.CanCollide = false
+    ghost.CanQuery = false
+    ghost.CanTouch = false
+    ghost.Material = Enum.Material.Neon
+    ghost.Color = Color3.fromRGB(180, 240, 255)
+    ghost.Transparency = 0.5
+    ghost.Size = Vector3.new(2, 5, 1)
+    ghost.CFrame = CFrame.lookAt(from, from + flat)
+    ghost.Parent = workspace
+    local goal = CFrame.lookAt(from + flat.Unit * skill.GhostDistance, from + flat.Unit * (skill.GhostDistance + 1))
+    TweenService:Create(ghost, TweenInfo.new(skill.GhostDuration, Enum.EasingStyle.Linear), { CFrame = goal, Transparency = 1 }):Play()
+    Debris:AddItem(ghost, skill.GhostDuration + 0.05)
+end
+
+-- Rescue Claw: a short beam from where the robot was to where it landed.
+local function claw(landing: Vector3, delta: Vector3)
+    local from = landing - delta
+    local length = delta.Magnitude
+    if length < 1e-3 then
+        return
+    end
+    local beam = Instance.new("Part")
+    beam.Anchored = true
+    beam.CanCollide = false
+    beam.CanQuery = false
+    beam.CanTouch = false
+    beam.Material = Enum.Material.Neon
+    beam.Color = Color3.fromRGB(255, 255, 120)
+    beam.Size = Vector3.new(0.3, 0.3, length)
+    beam.CFrame = CFrame.lookAt((from + landing) / 2, landing)
+    beam.Parent = workspace
+    TweenService:Create(beam, TweenInfo.new(FLASH_SECONDS), { Transparency = 1 }):Play()
+    Debris:AddItem(beam, FLASH_SECONDS + 0.05)
+end
+
+local function onCombatEffect(effectType: string, sourceId: number?, targetId: number?, position: Vector3?, direction: Vector3?)
     if effectType == EffectType.FALL then
         return -- HUD score change is the feedback for falls
     end
@@ -92,6 +145,11 @@ local function onCombatEffect(effectType: string, sourceId: number?, targetId: n
     local at = position or (anchor and anchor.Position)
     if at then
         flash(at, style.color, style.size)
+    end
+    if effectType == EffectType.PHANTOM and position and direction then
+        phantom(position, direction)
+    elseif effectType == EffectType.RESCUE and position and direction then
+        claw(position, direction)
     end
     if style.sound and anchor then
         playSound(style.sound, anchor)

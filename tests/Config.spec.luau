@@ -28,13 +28,42 @@ return function(t)
         expect.eq(Arena.FallHeight, 8, "fall height")
     end)
 
-    t.test("MVP skill list has exactly the three first-batch skills with configs", function()
-        expect.eq(GameConfig.Skills.AvailableInMVP, { "rocket_pop", "side_burst", "counter_shield" }, "mvp list")
-        for _, id in GameConfig.Skills.AvailableInMVP do
-            expect.truthy(GameConfig.Skills[id], "config for " .. id)
-            expect.truthy(GameConfig.Skills[id].MVP ~= false, id .. " is MVP")
+    t.test("all seven designed skills are selectable with SKILLS cooldowns", function()
+        expect.eq(GameConfig.Skills.Selectable, {
+            "rocket_pop",
+            "ground_slam",
+            "side_burst",
+            "magnet_pull",
+            "counter_shield",
+            "phantom_brake",
+            "rescue_claw",
+        }, "selectable list")
+        local cooldowns = {
+            rocket_pop = 8,
+            ground_slam = 10,
+            side_burst = 7,
+            magnet_pull = 11,
+            counter_shield = 12,
+            phantom_brake = 6,
+            rescue_claw = 15,
+        }
+        for id, cd in cooldowns do
+            expect.eq(GameConfig.Skills[id].Cooldown, cd, id .. " cooldown")
+            expect.truthy(GameConfig.Skills[id].Name, id .. " name")
         end
-        expect.truthy(table.find(GameConfig.Skills.AvailableInMVP, GameConfig.Skills.DefaultSelection), "default is MVP")
+        expect.eq(GameConfig.Skills.ground_slam.HitRadius, 7, "slam radius")
+        expect.eq(GameConfig.Skills.magnet_pull.Range, 11, "magnet range")
+        expect.truthy(table.find(GameConfig.Skills.Selectable, GameConfig.Skills.DefaultSelection), "default selectable")
+    end)
+
+    t.test("edgeDistance / clampInside (Rescue Claw geometry)", function()
+        expect.eq(ArenaMath.edgeDistance(Arena, 48, 0, 0), 24, "center")
+        expect.eq(ArenaMath.edgeDistance(Arena, 48, 22, 0), 2, "near edge")
+        expect.eq(ArenaMath.edgeDistance(Arena, 48, 26, 0), -2, "outside")
+        local x, z = ArenaMath.clampInside(Arena, 24, 30, -5, 4)
+        expect.eq(x, 8, "clamped x")
+        expect.eq(z, -5, "z unchanged")
+        expect.truthy(ArenaMath.edgeDistance(Arena, 24, x, z) >= 4 - 1e-9, "at least inset inside")
     end)
 
     t.test("shrink steps are ordered and shrinking", function()

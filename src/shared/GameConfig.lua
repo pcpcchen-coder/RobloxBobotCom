@@ -85,11 +85,18 @@ local GameConfig = {
 
     Skills = {
         DefaultSelection = "rocket_pop",
-        AvailableInMVP = {
+        -- All seven designed skills are selectable (SKILLS 1). Order = picker order.
+        Selectable = {
             "rocket_pop",
+            "ground_slam",
             "side_burst",
+            "magnet_pull",
             "counter_shield",
+            "phantom_brake",
+            "rescue_claw",
         },
+        -- Server raycast length below the root to decide "grounded".
+        GroundCheckDistance = 4.5,
 
         rocket_pop = {
             Name = "Rocket Pop",
@@ -100,8 +107,6 @@ local GameConfig = {
             -- Jump impulse/height requires empirical tuning (placeholders).
             LaunchVerticalSpeed = 45,
             LaunchDuration = 0.2,
-            -- Server raycast length below the root to decide "grounded" (no re-cast in air).
-            GroundCheckDistance = 4.5,
             KnockbackHorizontal = 42,
             KnockbackVertical = 16,
         },
@@ -110,7 +115,16 @@ local GameConfig = {
             Name = "Ground Slam",
             Cooldown = 10,
             HitRadius = 7,
-            MVP = false,
+            MaxHeightDifference = 4,
+            -- Short hop, then the shockwave fires on landing (placeholders).
+            LaunchVerticalSpeed = 30,
+            LaunchDuration = 0.15,
+            -- Landing only counts after MinAirTime; no landing by MaxAirTime = fail.
+            MinAirTime = 0.25,
+            MaxAirTime = 1.5,
+            BusyTime = 0.4,
+            KnockbackHorizontal = 40,
+            KnockbackVertical = 14,
         },
 
         side_burst = {
@@ -131,7 +145,13 @@ local GameConfig = {
             Name = "Magnet Pull",
             Cooldown = 11,
             Range = 11,
-            MVP = false,
+            -- Visible wind-up before the pull resolves (placeholder).
+            Startup = 0.25,
+            FrontArcDegrees = 60,
+            MaxHeightDifference = 4,
+            -- Velocity change toward the caster (placeholders; no teleport).
+            PullHorizontal = 30,
+            PullVertical = 6,
         },
 
         counter_shield = {
@@ -146,13 +166,25 @@ local GameConfig = {
         phantom_brake = {
             Name = "Phantom Brake",
             Cooldown = 6,
-            MVP = false,
+            -- Caster brakes to a stop; a hologram (visual only) continues forward.
+            BrakeDuration = 0.15,
+            BusyTime = 0.15,
+            GhostDistance = 10,
+            GhostDuration = 0.35,
         },
 
         rescue_claw = {
             Name = "Rescue Claw",
             Cooldown = 15,
-            MVP = false,
+            -- Usable when off the platform or within TriggerEdgeDistance of its edge,
+            -- while the root is still at/above FallHeight and below this height over the top.
+            TriggerEdgeDistance = 3,
+            MaxHeightAboveTop = 12,
+            -- Server-chosen landing point: clamped this far inside the current edge.
+            SafeInset = 4,
+            BusyTime = 0,
+            -- Can be used during another move (e.g. a dash that overshot the edge).
+            IgnoreBusy = true,
         },
     },
 }

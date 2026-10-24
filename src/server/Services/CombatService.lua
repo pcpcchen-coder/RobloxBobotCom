@@ -1,8 +1,9 @@
 --!strict
 -- RoboPush Arena / CombatService.lua
--- Server-authoritative Dash + MVP specials (Rocket Pop, Side Burst, Counter
--- Shield). Clients send intent only; hits, knockback and cooldowns are
--- decided here from server-side positions (ARCHITECTURE 4, 8).
+-- Server-authoritative Dash + all seven specials (Rocket Pop, Ground Slam,
+-- Side Burst, Magnet Pull, Counter Shield, Phantom Brake, Rescue Claw).
+-- Clients send intent only; hits, knockback and cooldowns are decided here
+-- from server-side positions (ARCHITECTURE 4, 8; SKILLS).
 --
 -- Interface
 --   CombatService.init(deps)          -- connect RemoteEvents
@@ -21,6 +22,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameTypes = require(Shared:WaitForChild("GameTypes"))
+local ArenaMath = require(Shared:WaitForChild("ArenaMath"))
 local Maid = require(Shared:WaitForChild("Maid"))
 
 local Logic = script.Parent.Parent:WaitForChild("Logic")
@@ -39,7 +41,7 @@ export type Deps = {
 }
 
 type Window = {
-    kind: string, -- "dash" | "side_burst"
+    kind: string, -- "dash" | "side_burst" | "ground_slam"
     attacker: Player,
     matchId: string,
     lifeId: number,
@@ -53,6 +55,9 @@ type Window = {
     knockH: number,
     knockV: number,
     hitEffect: string,
+    -- Optional per-frame behaviour replacing the contact test; returns true when finished.
+    custom: ((window: Window, t: number, root: BasePart) -> boolean)?,
+    startedAt: number?,
 }
 
 local CombatService = {}
@@ -83,8 +88,8 @@ local function sendSkillState(player: Player)
     remotes.SkillState:FireClient(player, selected, skillReady, selected)
 end
 
-local function broadcastEffect(effectType: string, source: Player?, target: Player?, position: Vector3?)
-    remotes.CombatEffect:FireAllClients(effectType, source and source.UserId, target and target.UserId, position)
+local function broadcastEffect(effectType: string, source: Player?, target: Player?, position: Vector3?, direction: Vector3?)
+    remotes.CombatEffect:FireAllClients(effectType, source and source.UserId, target and target.UserId, position, direction)
 end
 
 local function opponentPlayer(player: Player): Player?
@@ -116,7 +121,7 @@ local function isGrounded(root: BasePart): boolean
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = { root.Parent :: Instance }
-    local distance = config.Skills.rocket_pop.GroundCheckDistance
+    local distance = config.Skills.GroundCheckDistance
     return workspace:Raycast(root.Position, Vector3.new(0, -distance, 0), params) ~= nil
 end
 
@@ -148,13 +153,9 @@ local function applySelfMotion(root: BasePart, velocity: Vector3, duration: numb
     return attachment
 end
 
--- Authoritative knockback: take network ownership, apply mass-scaled impulse,
--- hand ownership back later (needs two-client tuning, T04).
-local function applyKnockback(target: Player, delta: Vector3)
-    local root, humanoid = liveRoot(target)
-    if not root or not humanoid then
-        return
-    end
+-- Take server network ownership of the robot for a moment so a server-side
+-- physics change is authoritative; the newest call owns the hand-back.
+local function withServerOwnership(target: Player, root: BasePart, humanoid: Humanoid, platformStand: boolean)
     local userId = target.UserId
     knockToken[userId] = (knockToken[userId] or 0) + 1
     local token = knockToken[userId]
@@ -162,8 +163,7 @@ local function applyKnockback(target: Player, delta: Vector3)
     pcall(function()
         root:SetNetworkOwner(nil)
     end)
-    humanoid.PlatformStand = true
-    root:ApplyImpulse(delta * root.AssemblyMass)
+    humanoid.PlatformStand = platformStand
 
     task.delay(config.Physics.KnockbackOwnershipSeconds, function()
         if knockToken[userId] ~= token then
@@ -178,6 +178,16 @@ local function applyKnockback(target: Player, delta: Vector3)
             end)
         end
     end)
+end
+
+-- Authoritative knockback: server ownership + mass-scaled impulse (T04).
+local function applyKnockback(target: Player, delta: Vector3)
+    local root, humanoid = liveRoot(target)
+    if not root or not humanoid then
+        return
+    end
+    withServerOwnership(target, root, humanoid, true)
+    root:ApplyImpulse(delta * root.AssemblyMass)
 end
 
 local function stopWindowMotion(window: Window)
@@ -197,7 +207,8 @@ local function resolveImpact(
     knockH: number,
     knockV: number,
     hitEffect: string,
-    window: Window?
+    window: Window?,
+    pull: boolean?
 )
     local t = now()
     local attackerRoot = liveRoot(attacker)
@@ -239,8 +250,13 @@ local function resolveImpact(
             Logger.log("impact_ignored", { reason = "knockback_resist", attacker = attacker.UserId, target = target.UserId })
             return
         end
-        local look = flatLook(attackerRoot)
-        local vx, vy, vz = CombatRules.knockbackVelocity(a.X, a.Z, b.X, b.Z, look.X, look.Z, knockH, knockV)
+        local vx, vy, vz
+        if pull then
+            vx, vy, vz = CombatRules.pullVelocity(a.X, a.Z, b.X, b.Z, knockH, knockV)
+        else
+            local look = flatLook(attackerRoot)
+            vx, vy, vz = CombatRules.knockbackVelocity(a.X, a.Z, b.X, b.Z, look.X, look.Z, knockH, knockV)
+        end
         applyKnockback(target, Vector3.new(vx, vy, vz))
         combat:markKnockedBack(target.UserId, t)
         broadcastEffect(hitEffect, attacker, target, b)
@@ -267,7 +283,15 @@ local function stepWindows()
     local t = now()
     local remaining: { Window } = {}
     for _, window in windows do
-        if windowStillValid(window, t) then
+        local custom = window.custom
+        if custom and windowStillValid(window, t) then
+            local root = liveRoot(window.attacker)
+            if root and not custom(window, t, root) then
+                table.insert(remaining, window)
+            else
+                stopWindowMotion(window)
+            end
+        elseif windowStillValid(window, t) then
             local attackerRoot = liveRoot(window.attacker)
             local target = opponentPlayer(window.attacker)
             local targetRoot = target and liveRoot(target)
@@ -460,12 +484,130 @@ local function castCounterShield(player: Player, root: BasePart)
     Logger.log("shield_up", { matchId = model.matchId, userId = player.UserId })
 end
 
+-- One radial shockwave from the caster (Rocket Pop launch, Ground Slam landing).
+local function shockwave(player: Player, root: BasePart, radius: number, maxDy: number, knockH: number, knockV: number, hitEffect: string)
+    local target = opponentPlayer(player)
+    local targetRoot = target and liveRoot(target)
+    if target and targetRoot and model:isAlive(target.UserId) then
+        local a, b = root.Position, targetRoot.Position
+        if CombatRules.isInRadius(a.X, a.Y, a.Z, b.X, b.Y, b.Z, radius, maxDy) then
+            resolveImpact(player, target, false, knockH, knockV, hitEffect, nil)
+        end
+    end
+end
+
+local function stillSameLife(player: Player, lifeId: number, matchId: string): boolean
+    return model.matchId == matchId and model:currentLifeId(player.UserId) == lifeId and GameTypes.isCombatState(model.state)
+end
+
+-- Ground Slam (SKILLS 3): hop, then one shockwave on the first valid landing
+-- on the platform; no landing within MaxAirTime (or falling off) = fail.
+local function castGroundSlam(player: Player, root: BasePart, lifeId: number)
+    local skill = config.Skills.ground_slam
+    local t = now()
+    local motion = applySelfMotion(root, Vector3.new(0, skill.LaunchVerticalSpeed, 0), skill.LaunchDuration, true)
+    addWindow({
+        kind = "ground_slam",
+        attacker = player,
+        matchId = model.matchId,
+        lifeId = lifeId,
+        endsAt = t + skill.MaxAirTime,
+        startedAt = t,
+        hit = {},
+        motion = motion,
+        radius = skill.HitRadius,
+        maxDy = skill.MaxHeightDifference,
+        arcDegrees = nil,
+        knockH = skill.KnockbackHorizontal,
+        knockV = skill.KnockbackVertical,
+        hitEffect = EffectType.SLAM_HIT,
+        custom = function(window: Window, stepTime: number, casterRoot: BasePart): boolean
+            if stepTime - (window.startedAt :: number) < skill.MinAirTime or not isGrounded(casterRoot) then
+                return false
+            end
+            local p = casterRoot.Position
+            if ArenaMath.isOverPlatform(config.Arena, model.arenaSize, p.X, p.Z) then
+                broadcastEffect(EffectType.SLAM_HIT, player, nil, p)
+                shockwave(player, casterRoot, window.radius, window.maxDy, window.knockH, window.knockV, EffectType.SLAM_HIT)
+                Logger.log("ground_slam_land", { matchId = window.matchId, userId = player.UserId })
+            end
+            return true -- single trigger, landed or not
+        end,
+    })
+    broadcastEffect(EffectType.SLAM_JUMP, player, nil, root.Position)
+    Logger.log("ground_slam", { matchId = model.matchId, userId = player.UserId, lifeId = lifeId })
+end
+
+-- Magnet Pull (SKILLS 5): visible wind-up, then pull one target inside the
+-- front arc toward the caster. Velocity change only, never a teleport.
+local function castMagnetPull(player: Player, root: BasePart, lifeId: number)
+    local skill = config.Skills.magnet_pull
+    local matchId = model.matchId
+    broadcastEffect(EffectType.MAGNET, player, nil, root.Position, flatLook(root))
+    task.delay(skill.Startup, function()
+        if not stillSameLife(player, lifeId, matchId) then
+            return
+        end
+        local casterRoot = liveRoot(player)
+        local target = opponentPlayer(player)
+        local targetRoot = target and liveRoot(target)
+        if not casterRoot or not target or not targetRoot or not model:isAlive(target.UserId) then
+            return
+        end
+        local a, b = casterRoot.Position, targetRoot.Position
+        local look = flatLook(casterRoot)
+        if
+            CombatRules.isInFrontArc(
+                a.X,
+                a.Y,
+                a.Z,
+                look.X,
+                look.Z,
+                b.X,
+                b.Y,
+                b.Z,
+                skill.Range,
+                skill.FrontArcDegrees,
+                skill.MaxHeightDifference
+            )
+        then
+            resolveImpact(player, target, false, skill.PullHorizontal, skill.PullVertical, EffectType.MAGNET_HIT, nil, true)
+        end
+        Logger.log("magnet_pull", { matchId = matchId, userId = player.UserId })
+    end)
+end
+
+-- Phantom Brake (SKILLS 7): the caster brakes; clients draw a hologram that
+-- keeps going. The hologram has no collision and cannot score.
+local function castPhantomBrake(player: Player, root: BasePart)
+    local skill = config.Skills.phantom_brake
+    applySelfMotion(root, Vector3.zero, skill.BrakeDuration, false)
+    broadcastEffect(EffectType.PHANTOM, player, nil, root.Position, flatLook(root))
+    Logger.log("phantom_brake", { matchId = model.matchId, userId = player.UserId })
+end
+
+-- Rescue Claw (SKILLS 8): server picks the landing point inside the current
+-- platform edge; eligibility was checked before the cooldown was spent.
+local function castRescueClaw(player: Player, root: BasePart, humanoid: Humanoid)
+    local skill = config.Skills.rescue_claw
+    local arena = config.Arena
+    local from = root.Position
+    local x, z = ArenaMath.clampInside(arena, model.arenaSize, from.X, from.Z, skill.SafeInset)
+    local landing = Vector3.new(x, arena.PlatformTopY + arena.SpawnHeightAboveTop, z)
+    withServerOwnership(player, root, humanoid, false)
+    root.AssemblyLinearVelocity = Vector3.zero
+    local character = root.Parent :: Model
+    character:PivotTo(CFrame.lookAt(landing, landing + flatLook(root)))
+    broadcastEffect(EffectType.RESCUE, player, nil, landing, landing - from)
+    Logger.log("rescue_claw", { matchId = model.matchId, userId = player.UserId })
+end
+
 local function onRequestSpecial(player: Player, skillId: any, directionHint: any)
     local root, humanoid, lifeId = gate(player, "special")
     if not root or not humanoid or not lifeId then
         return
     end
-    if not CombatRules.isValidMvpSkill(config, skillId) then
+    if not CombatRules.isValidSkill(config, skillId) then
         Logger.anomaly(player, "invalid_skill", { skillId = tostring(skillId) })
         return
     end
@@ -477,9 +619,17 @@ local function onRequestSpecial(player: Player, skillId: any, directionHint: any
     end
     -- Rocket Pop cannot be re-cast while airborne (SKILLS 2). Checked before
     -- spending the cooldown so a rejected cast is not charged.
-    if skillId == "rocket_pop" and not isGrounded(root) then
+    if (skillId == "rocket_pop" or skillId == "ground_slam") and not isGrounded(root) then
         Logger.log("request_rejected", { userId = player.UserId, action = skillId, reason = "airborne" })
         return
+    end
+    if skillId == "rescue_claw" then
+        local p = root.Position
+        local eligible, why = CombatRules.canRescue(config, model.arenaSize, p.X, p.Y, p.Z)
+        if not eligible then
+            Logger.log("request_rejected", { userId = player.UserId, action = skillId, reason = why })
+            return
+        end
     end
     local t = now()
     local ok, reason = combat:tryUseSpecial(player.UserId, skillId, t)
@@ -494,6 +644,14 @@ local function onRequestSpecial(player: Player, skillId: any, directionHint: any
         castSideBurst(player, root, lifeId, directionHint)
     elseif skillId == "counter_shield" then
         castCounterShield(player, root)
+    elseif skillId == "ground_slam" then
+        castGroundSlam(player, root, lifeId)
+    elseif skillId == "magnet_pull" then
+        castMagnetPull(player, root, lifeId)
+    elseif skillId == "phantom_brake" then
+        castPhantomBrake(player, root)
+    elseif skillId == "rescue_claw" then
+        castRescueClaw(player, root, humanoid)
     end
     sendSkillState(player)
 end
