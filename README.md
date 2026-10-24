@@ -1,10 +1,10 @@
 # RoboPush Arena｜機器人推推擂台
 
-> Roblox 小型多人對戰遊戲｜設計版本 **v0.2 (2026-10-24)**｜狀態：**已完成設計，尚未實作與驗收**
+> Roblox 小型多人對戰遊戲｜設計版本 **v0.2 (2026-10-24)**｜狀態：**P1–P4 程式碼已實作（靜態檢查＋純邏輯單元測試通過），尚未經 Roblox Studio／真機驗收**
 
 玩家操控可愛機器人，在逐漸縮小的懸浮擂台上，透過衝刺、突然彈跳與反制技能，將對手推下平台。遊戲以 **容易上手、短局制、公平競技、適合朋友同樂** 為核心。
 
-**專案狀態說明：** 此儲存庫目前以規劃文件為主；有參數草案，不代表 Roblox Studio 遊戲、物理手感或多人對戰已經完成。
+**專案狀態說明：** 已有可由 Rojo 同步的 Luau 程式（比賽狀態機、計分、縮圈、Dash、三項 MVP 技能、HUD、跨裝置輸入）。**尚未在 Roblox Studio Server & Clients 或手機真機實測**；物理手感、Network Ownership、擊退數值均為待測假設。測試現況見 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
 
 ## 核心玩法
 
@@ -26,7 +26,8 @@
 | [docs/TEST_PLAN.md](docs/TEST_PLAN.md) | 多人、物理、輸入、作弊、掉線等驗收案例 |
 | [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md) | 交給 Claude Code / Codex 的可執行任務模板 |
 | [AGENTS.md](AGENTS.md) | Agent 工作規則與完成條件 |
-| [src/shared/GameConfig.lua](src/shared/GameConfig.lua) | 預設平衡參數草案（尚未與遊戲接線） |
+| [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | 需求 ↔ 測試 ↔ 結果 ↔ 證據矩陣（目前執行狀況） |
+| [src/shared/GameConfig.lua](src/shared/GameConfig.lua) | 全部 gameplay 參數（已接線，數值待實測調校） |
 
 ## 首個可玩版本（v0.1）
 
@@ -36,24 +37,47 @@
 4. 完成縮圈、PC/手機操作、HUD、伺服器驗證和最基本的特效。
 5. 使用 Roblox Studio **Server & Clients** 模擬雙人，並在手機真機驗收。
 
-## 規劃中的目錄
+## 開發與執行
+
+工具版本鎖定於 `rokit.toml`（Rojo 7.4.4、selene、StyLua、Lune）。
+
+~~~bash
+rokit install                 # 安裝工具鏈
+./scripts/check.sh            # 格式 + lint + 純邏輯單元測試 + rojo build
+rojo serve                    # 搭配 Roblox Studio Rojo 外掛同步
+~~~
+
+Studio 雙人測試：`rojo serve` 連線後，於 Studio **Test → Clients and Servers** 選 1 Server + 2 Clients。
+遊戲設定請把 **Max Players 設為 2**（伺服器人數無法由程式設定；第 3 位以後玩家會排隊觀戰）。
+
+## 目錄
 
 ~~~text
-RoboPushArena/
-├── README.md
-├── AGENTS.md
-├── default.project.json              # 待實作：Rojo 映射
+RobloxBobotCom/
+├── default.project.json          # Rojo 映射
+├── rokit.toml / selene.toml / stylua.toml
+├── scripts/check.sh              # 離線靜態檢查與單元測試
 ├── src/
-│   ├── shared/GameConfig.lua          # 已建立：參數草案
-│   ├── server/                        # 待實作：Match / Combat / Arena 等
-│   └── client/                        # 待實作：Input / UI / Effects
+│   ├── shared/                   # → ReplicatedStorage.Shared
+│   │   ├── GameConfig.lua        # 全部數值
+│   │   ├── GameTypes.lua         # 狀態、結果原因、特效列舉
+│   │   ├── Remotes.lua           # RemoteEvent 契約
+│   │   ├── ArenaMath.lua         # 縮圈時程、出生點、掉落判定（純函式）
+│   │   └── Maid.lua              # 生命週期清理
+│   ├── server/                   # → ServerScriptService.RoboPush
+│   │   ├── Bootstrap.server.lua
+│   │   ├── Logic/                # 純邏輯，可離線測試
+│   │   │   ├── MatchModel.lua    # 狀態機、計分、雙掉落、lifeId/matchId
+│   │   │   ├── CombatRules.lua   # 命中幾何、擊退向量、驗證、節流
+│   │   │   └── CombatState.lua   # 冷卻、護盾、抗擊退、技能選擇
+│   │   └── Services/             # Roblox API 轉接層
+│   │       ├── MatchService.lua  ArenaService.lua  CharacterService.lua
+│   │       ├── CombatService.lua Logger.lua
+│   └── client/                   # → StarterPlayerScripts.RoboPush
+│       ├── Main.client.lua  ClientState.lua
+│       └── Controllers/ InputController.lua UIController.lua EffectController.lua
+├── tests/                        # Lune 單元測試（*.spec.luau）
 └── docs/
-    ├── GDD.md
-    ├── SKILLS.md
-    ├── ARCHITECTURE.md
-    ├── ROADMAP.md
-    ├── TEST_PLAN.md
-    └── AGENT_HANDOFF.md
 ~~~
 
 ## 版本展望

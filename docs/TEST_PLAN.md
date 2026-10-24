@@ -1,6 +1,6 @@
 # 測試計畫｜RoboPush Arena MVP
 
-狀態：**測試尚未執行；全部 Not Run**。自動化測試與 Roblox Studio/真機人工測試應分別回報。
+狀態：**Studio／真機測試全部 Not Run**；純邏輯單元測試（Lune，`tests/*.spec.luau`）已執行，結果與證據見 [TEST_REPORT.md](TEST_REPORT.md)。自動化測試與 Roblox Studio/真機人工測試應分別回報——**單元測試 Pass 不等於下表 Pass**。
 
 ## 測試環境
 
