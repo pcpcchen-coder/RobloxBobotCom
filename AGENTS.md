@@ -35,3 +35,12 @@
 - 不要先加入付費增益、跨伺服器排名或完整機器人組裝。
 - 不要使用沒有記錄的魔法數字及未經清理的永久 Heartbeat 監聽。
 - 不要重寫全部 Roblox 原生移動而沒有明確需求。
+
+## 發佈更新（專案擁有者指定，2026-10-24）
+
+- 發佈前必讀 [docs/PUBLISHING.md](docs/PUBLISHING.md)，之後更新固定沿用該文件的成功路徑。
+- 固定目標：PUSHPUSH，Universe `10772683522`，Place `106459847310293`；人數上限 2。
+- 先核對最新 CI 建置，再於 Studio Command Bar 設定 `game:SetPlaceId(106459847310293)`、`game:SetUniverseId(10772683522)`，讀回 ID 後使用一般 **File → Publish / Publish latest version**。
+- 不將 Publish As / Save to Roblox As 作為此專案日常更新路徑；本次兩者卡住，一般 Publish 成功。
+- 成功標準：Studio 明確成功訊息 + 後台版本紀錄的已發佈標記；記下來源 commit、版本與時間。正在上傳不算完成。
+- 2026-10-24 16:39（Asia/Taipei）已成功發佈七技能程式至 Roblox **v7**；發佈成功不等於新增技能或真機回歸驗收通過。

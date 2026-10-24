@@ -6,6 +6,8 @@
 
 **專案狀態說明：** 已有可由 Rojo 同步的 Luau 程式（比賽狀態機、計分、縮圈、Dash、七項特殊技能、HUD、跨裝置輸入）。專案擁有者已於 Studio 與真機實測 T01–T22 並回報正常（尚未附 log／截圖）；新增的四項技能（T23–T26）尚未實測；擊退與技能數值仍可依手感調整。測試現況見 [docs/TEST_REPORT.md](docs/TEST_REPORT.md)。
 
+**目前線上版本：** [PUSHPUSH](https://www.roblox.com/games/106459847310293)，七技能版本已於 2026-10-24 16:39（Asia/Taipei）發佈為 Roblox **v7**。目前公開受眾依平台限制為 16 歲以上使用者與信任的聯絡對象。日後更新固定使用 [發佈作業規範](docs/PUBLISHING.md) 的一般 Publish 路徑。
+
 ## 核心玩法
 
 - **1v1**：等待兩位真人玩家後 3 秒倒數，開始正式 120 秒對戰。
@@ -26,6 +28,7 @@
 | [docs/TEST_PLAN.md](docs/TEST_PLAN.md) | 多人、物理、輸入、作弊、掉線等驗收案例 |
 | [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md) | 交給 Claude Code / Codex 的可執行任務模板 |
 | [AGENTS.md](AGENTS.md) | Agent 工作規則與完成條件 |
+| [docs/PUBLISHING.md](docs/PUBLISHING.md) | 固定發佈目標、已驗證 Publish 路徑、卡住處理與 v7 發佈紀錄 |
 | [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | 需求 ↔ 測試 ↔ 結果 ↔ 證據矩陣（目前執行狀況） |
 | [src/shared/GameConfig.lua](src/shared/GameConfig.lua) | 全部 gameplay 參數（已接線，數值待實測調校） |
 
@@ -52,19 +55,11 @@ rojo serve                    # 搭配 Roblox Studio Rojo 外掛同步
 Studio 雙人測試：`rojo serve` 連線後，於 Studio **Test → Clients and Servers** 選 1 Server + 2 Clients。
 遊戲設定請把 **Max Players 設為 2**（伺服器人數無法由程式設定；第 3 位以後玩家會排隊觀戰）。
 
-## 發佈私人測試版本（手機／手把實測用）
+## 發佈與後續更新
 
-1. 以 Studio 開啟 `rojo build -o RoboPushArena.rbxl` 產生的檔案（或 CI artifact），或用 `rojo serve` 同步到已開啟的 place。
-2. **File → Publish to Roblox As…** → 建立新體驗（或選既有體驗）。
-3. **Home → Game Settings**：
-   - **Permissions**：Playability 設 **Private**（只有你）或 **Friends**（邀請測試者）。
-   - **Places → 設定 → Server Fill／Max Players** 設 **2**（程式無法設定伺服器人數）。
-   - **Basic Info → Devices**：勾選 Computer、Phone、Tablet，需要手把時勾 Console。
-4. 手機登入**同一個帳號或已被授權的帳號**，從 Roblox App「我的體驗」或分享連結進入。
-5. 每次更新程式後重新 **Publish**；舊伺服器不會自動更新，可在網頁體驗設定中「Shut Down All Servers」。
-6. 測試結果與 log 請記錄到 `docs/TEST_REPORT.md`。
+依 [docs/PUBLISHING.md](docs/PUBLISHING.md) 操作：下載正確 commit 的成功 CI 建置 → Studio 設定既有 Place／Universe ID → 一般 **File → Publish** → 核對 Output 與後台已發佈版本。**這是專案擁有者指定的後續更新路徑**；舊版「Publish to Roblox As」更新指引已由此流程取代。
 
-> 公開（Public）發佈前需完成 Roblox 的 Experience Questionnaire（內容分級），且 MVP 不加入付費機制。
+每台伺服器訪客上限設為 **2**。受眾與裝置支援以後台實際設定為準；測試結果記錄至 TEST_REPORT，不把發佈成功當作功能驗收通過。
 
 ## 目錄
 
