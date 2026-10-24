@@ -5,7 +5,8 @@
 ## 執行環境與限制
 
 - 環境：Linux 雲端容器，**沒有 Roblox Studio、沒有 Roblox 帳號、沒有手機/手把**。
-- 因此 T01–T22 的 **Studio／真機欄位全部為 Not Run（Blocked：環境限制）**。
+- Agent 環境無法執行 Studio；**T01–T22 的 Studio／真機結果由專案擁有者（pcpcchen-coder）於 2026-10-24 自行實測並回報全部正常**，依其回報標為 Pass。
+- **證據限制**：此次回報為口頭確認，未附截圖、影片或 `[RoboPush]` log；裝置型號、測試場數（T12 的 30 場）、手把型號未記錄。後續回歸測試請補上證據欄。
 - 已執行的只有離線檢查：
   - `stylua --check src tests`（格式）→ 通過
   - `selene src`（lint）→ 0 errors / 0 warnings。**注意**：容器無法下載 Roblox API dump，lint 以自訂離線 std（luau + Roblox 全域名稱）執行；正式 `std = "roblox"` 尚未在本機跑過。
@@ -21,28 +22,28 @@
 
 | ID | 需求來源 | 邏輯單元測試（tests/） | 單元結果 | Studio／真機 | 證據 |
 |---|---|---|---|---|---|
-| T01 | GDD 2、7 | MatchModel: `T01 one player waits…` | Pass | Not Run | 單元測試輸出 |
-| T02 | GDD 2 | MatchModel: `T02 a fall gives the opponent exactly one point…` | Pass | Not Run | 同上 |
-| T03 | GDD 6.1 | Combat: `T03 dash cooldown…` | Pass | Not Run | 同上 |
-| T04 | ARCH 4 | Combat: 擊退方向/數值（`knockback direction…`）；物理一致性無法離線 | 部分（向量計算 Pass） | Not Run | 同上 |
-| T05 | GDD 2 | MatchModel: `T05 third point ends the match…` | Pass | Not Run | 同上 |
-| T06 | GDD 2 | MatchModel: `T06 tie at 120s…`、`T06 sudden death without a score…` | Pass | Not Run | 同上 |
-| T07 | GDD 3.2 | MatchModel: `T07/T19 shrink schedule…` | Pass | Not Run | 同上 |
-| T08 | GDD 3.2 | Config: `T08 spawn points stay inside every platform size…` | Pass | Not Run | 同上 |
-| T09 | GDD 2 | MatchModel: `T09 disconnect during RUNNING…` | Pass | Not Run | 同上 |
-| T10 | GDD 5 | —（手機真機） | N/A | Not Run | — |
-| T11 | ARCH 8 | Combat: `T11 rate limiter…`、`T03`（CD 拒絕） | Pass | Not Run | 同上 |
-| T12 | ROADMAP P5 | —（30 場耐久） | N/A | Not Run | — |
-| T13 | GDD 2 | MatchModel: `T13 double fall inside window…`、`T13 … sudden death…` | Pass | Not Run | 同上 |
-| T14 | GDD 7 | MatchModel: `T14 disconnect during COUNTDOWN…` | Pass | Not Run | 同上 |
-| T15 | GDD 2 | MatchModel: `spawn protection blocks acting…`；受擊保護在 CombatService（需 Studio） | 部分 Pass | Not Run | 同上 |
-| T16 | SKILLS 2 | Combat: `T16 rocket pop radius…` | Pass | Not Run | 同上 |
-| T17 | SKILLS 4 | Combat: `T17 side burst side selection…`、`T22 direction hint validation…` | Pass | Not Run | 同上 |
-| T18 | SKILLS 6 | Combat: `T18 shield…` | Pass | Not Run | 同上 |
-| T19 | GDD 3.2 | MatchModel: `T07/T19 shrink schedule…`、`T06`（延長賽 18×18） | Pass | Not Run | 同上 |
-| T20 | GDD 5 | —（鍵鼠/手機/手把實機） | N/A | Not Run | — |
-| T21 | ARCH 5 | MatchModel: `T21 stale lifeId…`、`stale SpawnPlayer token…` | Pass | Not Run | 同上 |
-| T22 | ARCH 8 | Combat: `skill selection only when open… (T22)`、`T22 direction hint validation…` | Pass | Not Run | 同上 |
+| T01 | GDD 2、7 | MatchModel: `T01 one player waits…` | Pass | Pass（使用者回報） | 單元測試輸出；Studio 口頭回報 |
+| T02 | GDD 2 | MatchModel: `T02 a fall gives the opponent exactly one point…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T03 | GDD 6.1 | Combat: `T03 dash cooldown…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T04 | ARCH 4 | Combat: 擊退方向/數值（`knockback direction…`）；物理一致性無法離線 | 部分（向量計算 Pass） | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T05 | GDD 2 | MatchModel: `T05 third point ends the match…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T06 | GDD 2 | MatchModel: `T06 tie at 120s…`、`T06 sudden death without a score…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T07 | GDD 3.2 | MatchModel: `T07/T19 shrink schedule…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T08 | GDD 3.2 | Config: `T08 spawn points stay inside every platform size…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T09 | GDD 2 | MatchModel: `T09 disconnect during RUNNING…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T10 | GDD 5 | —（手機真機） | N/A | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T11 | ARCH 8 | Combat: `T11 rate limiter…`、`T03`（CD 拒絕） | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T12 | ROADMAP P5 | —（30 場耐久） | N/A | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T13 | GDD 2 | MatchModel: `T13 double fall inside window…`、`T13 … sudden death…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T14 | GDD 7 | MatchModel: `T14 disconnect during COUNTDOWN…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T15 | GDD 2 | MatchModel: `spawn protection blocks acting…`；受擊保護在 CombatService（需 Studio） | 部分 Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T16 | SKILLS 2 | Combat: `T16 rocket pop radius…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T17 | SKILLS 4 | Combat: `T17 side burst side selection…`、`T22 direction hint validation…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T18 | SKILLS 6 | Combat: `T18 shield…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T19 | GDD 3.2 | MatchModel: `T07/T19 shrink schedule…`、`T06`（延長賽 18×18） | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T20 | GDD 5 | —（鍵鼠/手機/手把實機） | N/A | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T21 | ARCH 5 | MatchModel: `T21 stale lifeId…`、`stale SpawnPlayer token…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
+| T22 | ARCH 8 | Combat: `skill selection only when open… (T22)`、`T22 direction hint validation…` | Pass | Pass（使用者回報） | Studio／真機口頭回報（2026-10-24） |
 
 ## 重現方式
 
